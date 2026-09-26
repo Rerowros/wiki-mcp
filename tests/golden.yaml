@@ -1,0 +1,73 @@
+# Golden set for tools/eval.py, written for the demo corpus that ships with
+# this template.
+#
+# Each entry: a natural-language question, the page(s) that answer it, and
+# optionally `stale` pages — ones that were correct when written and are wrong
+# now. A run that ranks a stale page first has not merely missed; it answered
+# confidently with an outdated fact. eval.py reports that separately from recall.
+#
+# Replace these with questions about your own corpus. Verify every expected page
+# by reading it: a question whose answer you have not checked is worse than no
+# question. The original private deployment this template was extracted from
+# scored recall@5 0.83 on a 30-question set over ~536 pages; numbers on this
+# small demo corpus are not comparable to that.
+
+- q: what is the latest MCP specification revision
+  expect: [mcp-latest-revision-2026-07-28]
+  stale: [mcp-latest-revision-2025-11-25, mcp-latest-revision-2025-06-18]
+  time_sensitive: true
+
+- q: is dynamic client registration deprecated in MCP
+  expect: [mcp-latest-revision-2026-07-28, oauth-2-1-for-remote-mcp]
+  stale: [mcp-latest-revision-2025-11-25]
+  time_sensitive: true
+
+- q: does MCP still use session ids and the initialize handshake
+  expect: [mcp-latest-revision-2026-07-28]
+  time_sensitive: true
+
+- q: when did MCP servers become OAuth resource servers
+  expect: [mcp-latest-revision-2025-06-18, oauth-2-1-for-remote-mcp]
+  time_sensitive: true
+
+- q: what are client ID metadata documents
+  expect: [oauth-2-1-for-remote-mcp, mcp-latest-revision-2025-11-25]
+
+- q: how does a client discover the authorization server of an MCP server
+  expect: [oauth-2-1-for-remote-mcp]
+
+- q: why is PKCE required and what does the resource parameter do
+  expect: [oauth-2-1-for-remote-mcp]
+
+- q: who is allowed to grant wiki.write scope
+  expect: [oauth-2-1-for-remote-mcp]
+
+- q: what is the Model Context Protocol
+  expect: [model-context-protocol]
+
+- q: which tools does the wiki MCP server expose
+  expect: [model-context-protocol]
+
+- q: how are search results ranked with bm25
+  expect: [sqlite-fts5-bm25-search]
+
+- q: why does the index have a symbols column for identifiers like oauth-2.1
+  expect: [sqlite-fts5-bm25-search]
+
+- q: how do agents write to the wiki without pushing to main
+  expect: [proposal-branches-and-ci-gate]
+
+- q: why does the Worker merge instead of GitHub Actions
+  expect: [proposal-branches-and-ci-gate]
+
+- q: what is recall at 5 and staleness rate
+  expect: [retrieval-evaluation-golden-set]
+
+- q: how to measure retrieval quality with a golden set
+  expect: [retrieval-evaluation-golden-set]
+
+- q: when should a research cycle stop searching
+  expect: [research-cycle-idea-to-thesis]
+
+- q: which open question did the last cycle leave
+  expect: [2026-09-27-mcp-spec-revisions]

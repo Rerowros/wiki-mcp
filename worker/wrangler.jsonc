@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wiki-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  // global_fetch_strictly_public is required for Client ID Metadata
+  // Documents: CIMD makes the Worker fetch a URL supplied by the client,
+  // and the flag stops that reaching anything but the public internet.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "observability": { "enabled": true },
+  "vars": {
+    // "owner/name" of the GitHub repository that holds wiki/. The write path
+    // commits proposal branches here, and page URLs point at it.
+    "GITHUB_REPO": "your-org/wiki-mcp",
+    // The exact public URL of the OAuth-protected MCP route. The protected
+    // resource metadata pins this string; clients refuse a mismatch, and a
+    // trailing slash is a different resource. Leave empty to derive it from
+    // the request origin (fine for workers.dev and a single custom domain).
+    "PUBLIC_MCP_URL": "",
+    "RESOURCE_NAME": "Agent-maintained wiki"
+  },
+  "triggers": {
+    // Deletes abandoned agent/** branches after 7 days.
+    "crons": ["17 4 * * *"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      // npx wrangler kv namespace create OAUTH_KV
+      "id": "<YOUR_KV_NAMESPACE_ID>"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      // npx wrangler d1 create wiki-mcp
+      "database_name": "wiki-mcp",
+      "database_id": "<YOUR_D1_DATABASE_ID>"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+# Derived SQL for D1 and the local index build.
+dist/
+
+# Wrangler's local state and the worker's installed deps.
+.wrangler/
+worker/node_modules/
+worker/.dev.vars
+.dev.vars
+
+# Per-machine MCP client config (may carry tokens). Keep an example instead.
+.mcp.json
+
+# Obsidian per-machine state; plugins may hold sync credentials.
+.obsidian/workspace.json
+.obsidian/plugins/
+
+# --- Python ---
+__pycache__/
+*.pyc
+
+# --- OS ---
+Thumbs.db
+desktop.ini
+.DS_Store

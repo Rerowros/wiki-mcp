@@ -1,0 +1,138 @@
+# Everything that touches main, and the only place secrets live.
+#
+# Triggered by `push: main`, so it always runs its own definition from main —
+# never a definition an agent could have written on a branch.
+#
+# It is also the single writer of derived files. wiki/index.md, wiki/log.md and
+# wiki/state.md are rebuilt here and nowhere else, which is why branches must
+# not carry them: they are sorted aggregates that conflict on every concurrent
+# edit.
+name: publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      full_checks:
+        description: Run infrastructure tests even if this code was already verified
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-main
+  # Never cancel a running rebuild. Queued runs coalesce safely because the
+  # index is diffed against the SHA stored in D1, not against HEAD~1.
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # An exact successful-code cache avoids repeating infrastructure tests on
+      # wiki-only cycles, including when queued publish runs were coalesced.
+      - name: Look up previously verified code
+        id: verified
+        uses: actions/cache/restore@v5
+        continue-on-error: true
+        timeout-minutes: 1
+        with:
+          path: dist/ci-verified
+          key: ${{ runner.os }}-verified-code-v1-${{ hashFiles('.github/**', 'worker/**', 'tools/**', 'tests/**', 'schema.md', 'AGENTS.md', 'purpose.md', 'wiki/methodology/research-cycle-idea-to-thesis.md') }}
+          lookup-only: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        if: steps.verified.outputs.cache-hit != 'true' || inputs.full_checks == true
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - run: pip install --quiet pyyaml
+
+      - name: Install Worker dependencies
+        if: steps.verified.outputs.cache-hit != 'true' || inputs.full_checks == true
+        working-directory: worker
+        run: npm ci
+
+      - name: Normalise frontmatter and rebuild derived files
+        run: |
+          python tools/lint.py --fix
+          python tools/build.py
+          python tools/export_schema.py
+          python tools/export_context.py
+
+      - name: Validate after normalisation
+        run: |
+          python tests/test_invariants.py
+          python tools/lint.py
+
+      - name: Python regression tests
+        if: steps.verified.outputs.cache-hit != 'true' || inputs.full_checks == true
+        run: python -m unittest discover -s tests -p "test_*.py"
+
+      - name: Worker typecheck and tests
+        if: steps.verified.outputs.cache-hit != 'true' || inputs.full_checks == true
+        working-directory: worker
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Index builds and matches the vault
+        run: python tools/export_index.py --full --out dist/d1 --sqlite dist/wiki.db
+
+      - name: Retrieval has not regressed
+        run: python tools/eval.py --min-recall5 0.80 --max-staleness 0.30
+
+      # Pushed with GITHUB_TOKEN, which by design does not trigger workflows —
+      # that is what stops this from looping. The Worker's merge uses its own
+      # token, which is a different identity, so an agent write *does* trigger
+      # this run.
+      - name: Commit what changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A wiki/ worker/src/schema.generated.json worker/src/context.generated.json
+          if git diff --cached --quiet; then
+            echo "nothing to normalise"
+          else
+            git commit -m "build: regenerate derived files"
+            git push
+          fi
+
+      # Skipped until the Worker is deployed: set the repository variable
+      # WIKI_BASE_URL (https://<worker>) and the secret WIKI_ADMIN_TOKEN.
+      - name: Rebuild and push the search index
+        if: vars.WIKI_BASE_URL != ''
+        env:
+          WIKI_BASE_URL: ${{ vars.WIKI_BASE_URL }}
+          WIKI_ADMIN_TOKEN: ${{ secrets.WIKI_ADMIN_TOKEN }}
+        run: python tools/push_index.py
+
+      # Save only after every preceding check/publication succeeded. No prefix
+      # restore keys: a different code, test or contract hash must run the tests.
+      - name: Record successful code validation
+        if: steps.verified.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dist/ci-verified
+          git rev-parse HEAD > dist/ci-verified/commit
+
+      - name: Cache successful code validation
+        if: steps.verified.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        timeout-minutes: 1
+        with:
+          path: dist/ci-verified
+          key: ${{ steps.verified.outputs.cache-primary-key }}

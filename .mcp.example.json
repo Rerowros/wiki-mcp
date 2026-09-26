@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "wiki": {
+      "type": "http",
+      "url": "https://wiki-mcp.<your-subdomain>.workers.dev/cli/mcp",
+      "headers": {
+        "Authorization": "Bearer ${WIKI_MCP_TOKEN}"
+      }
+    }
+  }
+}

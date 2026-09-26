@@ -1,0 +1,133 @@
+# Validation. Runs against branch content, therefore against content an agent
+# wrote, therefore untrusted.
+#
+# `on: pull_request` executes the workflow definition from the PR head. An agent
+# that can write files to a branch could otherwise rewrite this file and get
+# code execution in CI — so this workflow holds no secrets and asks for no write
+# permission, and every secret lives in publish.yml, which only ever runs its
+# own definition from main.
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: ["agent/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # An exact successful-code cache avoids repeating infrastructure tests on
+      # wiki-only cycles, including when queued publish runs were coalesced.
+      - name: Look up previously verified code
+        id: verified
+        uses: actions/cache/restore@v5
+        continue-on-error: true
+        timeout-minutes: 1
+        with:
+          path: dist/ci-verified
+          key: ${{ runner.os }}-verified-code-v1-${{ hashFiles('.github/**', 'worker/**', 'tools/**', 'tests/**', 'schema.md', 'AGENTS.md', 'purpose.md', 'wiki/methodology/research-cycle-idea-to-thesis.md') }}
+          lookup-only: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        if: steps.verified.outputs.cache-hit != 'true'
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - run: pip install --quiet pyyaml
+
+      - name: Install Worker dependencies
+        if: steps.verified.outputs.cache-hit != 'true'
+        working-directory: worker
+        run: npm ci
+
+      # An agent branch may only touch wiki/. This is the guard that stops a
+      # written page from becoming a rewritten workflow.
+      - name: Agent branches touch only wiki/
+        if: startsWith(github.ref, 'refs/heads/agent/')
+        run: |
+          git fetch origin main --depth=1
+          outside=$(git diff --name-only origin/main...HEAD -- ':!wiki/**')
+          if [ -n "$outside" ]; then
+            echo "agent branch modifies files outside wiki/:"
+            echo "$outside"
+            exit 1
+          fi
+
+      # Derived files have exactly one writer, publish.yml on main. wiki/log.md
+      # groups by date with newest first, so two cycles on one day would insert
+      # under the same new heading and conflict every time.
+      - name: Agent branches carry no generated files
+        if: startsWith(github.ref, 'refs/heads/agent/')
+        run: |
+          if git diff --name-only origin/main...HEAD | grep -E '^wiki/(index|log|state)\.md$'; then
+            echo "generated files are built on main, not on branches"
+            exit 1
+          fi
+
+      - name: Invariants that once failed silently
+        run: python tests/test_invariants.py
+
+      - name: Python regression tests
+        if: steps.verified.outputs.cache-hit != 'true'
+        run: python -m unittest discover -s tests -p "test_*.py"
+
+      - name: Worker typecheck and tests
+        if: steps.verified.outputs.cache-hit != 'true'
+        working-directory: worker
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Validate against schema.md
+        run: python tools/lint.py
+
+      - name: Worker schema constants are current
+        run: python tools/export_schema.py --check
+
+      - name: Worker agent context is current
+        run: python tools/export_context.py --check
+
+      - name: Derived files are current
+        if: "!startsWith(github.ref, 'refs/heads/agent/')"
+        run: python tools/build.py --check
+
+      - name: Index builds and matches the vault
+        run: python tools/export_index.py --full --out dist/d1 --sqlite dist/wiki.db
+
+      - name: Retrieval has not regressed
+        run: python tools/eval.py --min-recall5 0.80 --max-staleness 0.30
+
+      # Save only after every preceding check/publication succeeded. No prefix
+      # restore keys: a different code, test or contract hash must run the tests.
+      - name: Record successful code validation
+        if: steps.verified.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p dist/ci-verified
+          git rev-parse HEAD > dist/ci-verified/commit
+
+      - name: Cache successful code validation
+        if: steps.verified.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        timeout-minutes: 1
+        with:
+          path: dist/ci-verified
+          key: ${{ steps.verified.outputs.cache-primary-key }}

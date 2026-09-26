@@ -1,0 +1,26 @@
+{
+  "today": "2026-09-08",
+  "records": [
+    {"subject":"bench-index","metric":"active-version","value":"4.3","as_of":"2026-09-07","observed_at":"2026-09-08","source":"policy","review_after":"2026-09-09"},
+    {"subject":"bench-cost-per-task-usd","metric":"active-version","value":"4.3","as_of":"2026-09-07","observed_at":"2026-09-08","source":"policy"},
+    {"subject":"model-a","metric":"bench-index-v4.1.1","qualifier":"effort=high","value":61,"as_of":"2026-09-01","source":"old-score"},
+    {"subject":"model-a","metric":"bench-index-v4.3","qualifier":"effort=high","value":49,"as_of":"2026-09-07","observed_at":"2026-09-08T01:00:00Z","source":"new-score","review_after":"2026-09-08"},
+    {"subject":"model-b","metric":"bench-index-v4.1.1","qualifier":"effort=high","value":62,"as_of":"2026-09-01","source":"old-b"},
+    {"subject":"model-a","metric":"bench-cost-per-task-usd","qualifier":"effort=high","value":1.23,"as_of":"2026-09-01","source":"unversioned-cost"},
+    {"subject":"model-a","metric":"list-price-usd-per-1m-input","value":5,"as_of":"2026-09-01","source":"price"},
+    {"subject":"model-c","metric":"bench-index-v4.3","value":99,"as_of":"2026-09-07","page_status":"draft","source":"draft"},
+    {"subject":"model-d","metric":"bench-index-v4.3","value":90,"as_of":"2026-09-09","source":"future"},
+    {"subject":"model-e","metric":"bench-index-v4.3","value":40,"as_of":"2026-09-07","observed_at":"2026-09-07T08:00:00Z","source":"morning"},
+    {"subject":"model-e","metric":"bench-index-v4.3","value":41,"as_of":"2026-09-07","observed_at":"2026-09-07T12:00:00Z","source":"afternoon"}
+  ],
+  "cases": [
+    {"subject":"model-a","metric":"bench-index","values":[49],"missing":0,"historical":1},
+    {"subject":"model-b","metric":"bench-index","values":[],"missing":1,"historical":1},
+    {"subject":"model-a","metric":"bench-index","version":"4.1.1","values":[61],"missing":0,"historical":1},
+    {"subject":"model-a","metric":"bench-cost-per-task-usd","values":[],"missing":1,"historical":1},
+    {"subject":"model-a","metric":"list-price","values":[5],"missing":0,"historical":0},
+    {"subject":"model-c","metric":"bench-index","values":[],"missing":1,"historical":1},
+    {"subject":"model-d","metric":"bench-index","values":[],"missing":1,"historical":1},
+    {"subject":"model-e","metric":"bench-index","values":[41],"missing":0,"historical":0}
+  ]
+}

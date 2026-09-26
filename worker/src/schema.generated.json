@@ -1,0 +1,109 @@
+{
+  "_generated_by": "tools/export_schema.py",
+  "_note": "Do not edit. Regenerate and commit when schema.md changes.",
+  "typeDir": {
+    "overview": "",
+    "entity": "entities",
+    "concept": "concepts",
+    "source": "sources",
+    "research": "research",
+    "query": "queries",
+    "comparison": "comparisons",
+    "synthesis": "synthesis",
+    "thesis": "thesis",
+    "methodology": "methodology",
+    "finding": "findings",
+    "log": "log"
+  },
+  "statuses": [
+    "current",
+    "draft",
+    "superseded"
+  ],
+  "cycleClasses": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "confidence": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "commonRequired": [
+    "type",
+    "title",
+    "summary",
+    "tags",
+    "related",
+    "created",
+    "updated",
+    "author",
+    "status"
+  ],
+  "typeRequired": {
+    "source": [],
+    "research": [
+      "question"
+    ],
+    "thesis": [
+      "confidence",
+      "status"
+    ],
+    "finding": [
+      "source",
+      "confidence",
+      "replicated"
+    ],
+    "log": [
+      "date"
+    ]
+  },
+  "fieldOrder": [
+    "type",
+    "title",
+    "summary",
+    "tags",
+    "entities",
+    "related",
+    "created",
+    "updated",
+    "author",
+    "status",
+    "supersedes",
+    "superseded_by",
+    "question",
+    "cycle_class",
+    "authors",
+    "year",
+    "url",
+    "venue",
+    "source",
+    "confidence",
+    "replicated",
+    "stance",
+    "review_after",
+    "claims"
+  ],
+  "generatedSlugs": [
+    "index",
+    "log",
+    "state"
+  ],
+  "linkFmKeys": [
+    "related",
+    "supersedes",
+    "superseded_by",
+    "source",
+    "entities"
+  ],
+  "loadBearingFmKeys": [
+    "supersedes",
+    "superseded_by",
+    "source"
+  ],
+  "slugPattern": "^[a-z0-9]+(?:-[a-z0-9.]+)*$",
+  "summaryMax": 200
+}
